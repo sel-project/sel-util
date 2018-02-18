@@ -20,6 +20,12 @@
  * SOFTWARE.
  *
  */
+/**
+ * Copyright: 2017-2018 sel-project
+ * License: MIT
+ * Authors: Kripth
+ * Source: $(HTTP github.com/sel-project/sel-format/sel/format/package.d, sel/format/package.d)
+ */
 module sel.format;
 
 public import sel.format.format : Format, unformat;

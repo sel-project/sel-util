@@ -19,6 +19,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
+ *//**
+ * Copyright: 2017-2018 sel-project
+ * License: MIT
+ * Authors: Kripth
+ * Source: $(HTTP github.com/sel-project/sel-format/sel/format/format.d, sel/format/format.d)
  */
 module sel.format.format;
 
