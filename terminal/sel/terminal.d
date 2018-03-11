@@ -21,10 +21,10 @@
  *
  */
 /**
- * Copyright: 2017-2018 sel-project
+ * Copyright: Copyright (c) 2018 sel-project
  * License: MIT
  * Authors: Kripth
- * Source: $(HTTP github.com/sel-project/sel-format/sel/format/terminal.d, sel/format/terminal.d)
+ * Source: $(HTTP github.com/sel-project/sel-util/terminal/sel/terminal.d, sel/terminal.d)
  */
 module sel.terminal;
 

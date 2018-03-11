@@ -21,10 +21,10 @@
  *
  */
 /**
- * Copyright: 2018 sel-project
+ * Copyright: Copyright (c) 2018 sel-project
  * License: MIT
  * Authors: Kripth
- * Source: $(HTTP github.com/sel-project/sel-format/sel/format/format.d, sel/format/format.d)
+ * Source: $(HTTP github.com/sel-project/sel-util/format/sel/format.d, sel/format.d)
  */
 module sel.format;
 
