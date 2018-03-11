@@ -1,0 +1,5 @@
+name "format"
+description "Provides formatting codes and formatting/unformatting utilities"
+targetType "library"
+importPaths "."
+sourcePaths "."

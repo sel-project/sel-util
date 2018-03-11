@@ -5,4 +5,5 @@ d:
   - ldc
 
 script:
-  - dub test --compiler=$DC
+  - dub test :format --compiler=$DC
+  - dub test :terminal --compiler=$DC

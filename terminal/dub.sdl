@@ -1,0 +1,7 @@
+name "terminal"
+description "Prints Minecraft-formatted messages to the terminal"
+targetType "library"
+dependency "sel-util:format" version="*"
+dependency "terminal" version="~>0.3.0"
+importPaths "."
+sourcePaths "."

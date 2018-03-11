@@ -2,7 +2,6 @@
 *.lib
 *.userprefs
 *.selections.json
-/.dub
+.dub
 app.d
-sel-format
-sel-format-test-library
+*-test-library
