@@ -20,6 +20,12 @@
  * SOFTWARE.
  *
  */
+/**
+ * Copyright: Copyright (c) 2018 sel-project
+ * License: MIT
+ * Authors: Kripth
+ * Source: $(HTTP github.com/sel-project/sel-util/chat/sel/chat.d, sel/chat.d)
+ */
 module sel.chat;
 
 import std.array : Appender;
