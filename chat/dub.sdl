@@ -1,0 +1,6 @@
+name "chat"
+description "JSON chat parser and serializer for Minecraft: Java Edition"
+targetType "library"
+dependency "sel-util:format" version="*"
+importPaths "."
+sourcePaths "."
