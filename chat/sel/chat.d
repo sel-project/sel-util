@@ -54,6 +54,7 @@ private @trusted void parseChatImpl(ref Appender!string appender, JSONValue json
 			}
 			auto text = "text" in json.object;
 			if(text && text.type == JSON_TYPE.STRING) {
+				appender.put(format);
 				appender.put(text.str);
 			}
 			auto extra = "extra" in json.object;

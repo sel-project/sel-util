@@ -1,0 +1,6 @@
+name "stream"
+description "Stream part of deprecated sel-net library"
+targetType "library"
+importPaths "."
+sourcePaths "."
+dependency "xbuffer" version="~>0.2.0"

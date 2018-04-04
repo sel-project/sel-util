@@ -7,4 +7,5 @@ d:
 script:
   - dub test :chat --compiler=$DC
   - dub test :format --compiler=$DC
+  - dub test :stream --compiler=$DC
   - dub test :terminal --compiler=$DC
