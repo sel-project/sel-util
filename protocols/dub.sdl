@@ -1,0 +1,5 @@
+name "protocols"
+description "Protocols numbers and versions"
+targetType "library"
+importPaths "."
+sourcePaths "."

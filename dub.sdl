@@ -7,5 +7,6 @@ targetType "none"
 
 subPackage "chat"
 subPackage "format"
+subPackage "protocols"
 subPackage "stream"
 subPackage "terminal"
