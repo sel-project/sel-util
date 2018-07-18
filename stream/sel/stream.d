@@ -31,6 +31,8 @@ module sel.stream;
 import std.system : Endian;
 import std.typetuple : TypeTuple;
 
+import libasync;
+
 import xbuffer.buffer : Buffer, BufferOverflowException;
 import xbuffer.varint : isVar;
 
@@ -39,52 +41,123 @@ import xbuffer.varint : isVar;
  */
 class Stream {
 
-	private void delegate(Buffer) _send, _recv;
+	private AsyncTCPConnection conn;
+	private Buffer buffer;
 
-	public this(void delegate(Buffer) send, void delegate(Buffer) recv) {
-		_send = send;
-		_recv = recv;
+	public void delegate(Buffer) handler;
+
+	public Modifier modifier;
+
+	this(AsyncTCPConnection conn, void delegate(Buffer) handler) {
+		this.conn = conn;
+		this.buffer = new Buffer(1024);
+		this.handler = handler;
+		this.modifier = new BaseModifier(this);
+	}
+
+	this(AsyncTCPConnection conn) {
+		this(conn, (Buffer buffer){});
+	}
+
+	this(EventLoop eventLoop, string ip, ushort port) {
+		this(new AsyncTCPConnection(eventLoop));
+		this.conn.host(ip, port);
+		this.conn.run(&this.handle);
+	}
+
+	private void handle(TCPEvent event) {
+		switch(event) with(TCPEvent) {
+			case READ:
+				this.buffer.reset();
+				static ubyte[] buffer = new ubyte[4096];
+				while(true) {
+					auto len = this.conn.recv(buffer);
+					if(len > 0) this.buffer.write(buffer[0..len]);
+					if(len < buffer.length) break;
+				}
+				this.modifier.receive(this.buffer);
+				break;
+			case CLOSE:
+				//TODO call close handler
+				break;
+			default:
+				break;
+		}
+	}
+
+	public void handleData() {
+		this.modifier.receive(this.buffer);
 	}
 
 	public void send(Buffer buffer) {
-		_send(buffer);
+		this.modifier.send(buffer);
 	}
 
-	public void parseInput(Buffer buffer) {
-		_recv(buffer);
+	public void sendData(Buffer buffer) {
+		this.conn.send(buffer.data!ubyte);
 	}
 
-	Stream encapsulate(T:Modifier, E...)(E args) {
-		return new T(this, args);
+	public void modify(M:ComplexModifier, E...)(E args) {
+		this.modifier = new M(this.modifier, args);
 	}
+
+	//TODO close method
 	
 }
 
-class Modifier : Stream {
+class Modifier {
+
+	abstract void send(Buffer buffer);
+
+	abstract void receive(Buffer buffer);
+
+}
+
+class BaseModifier : Modifier {
+
+	Stream stream;
 
 	this(Stream stream) {
-		super(stream._send, stream._recv);
+		this.stream = stream;
+	}
+
+	override void send(Buffer buffer) {
+		this.stream.sendData(buffer);
+	}
+
+	override void receive(Buffer buffer) {
+		this.stream.handler(buffer);
 	}
 
 }
 
-class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : Modifier {
+class ComplexModifier : Modifier {
+
+	protected Modifier base;
+
+	protected this(Modifier base) {
+		this.base = base;
+	}
+
+}
+
+class LengthPrefixedModifier(T, Endian endianness=Endian.bigEndian) : ComplexModifier {
 
 	static if(!isVar!T) alias E = TypeTuple!(T, endianness);
 	else alias E = T;
 
 	private size_t length = 0;
 
-	this(Stream stream) {
-		super(stream);
+	this(Modifier base) {
+		super(base);
 	}
 
 	override void send(Buffer buffer) {
 		buffer.write!E(buffer.data.length, 0);
-		super.send(buffer);
+		this.base.send(buffer);
 	}
 
-	override void parseInput(Buffer buffer) {
+	override void receive(Buffer buffer) {
 		if(this.length == 0) {
 			this.parseLength(buffer);
 		} else {
@@ -101,7 +174,7 @@ class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : Modifier {
 
 	private void parseImpl(Buffer buffer) {
 		if(buffer.canRead(this.length)) {
-			super.parseInput(new Buffer(buffer.read!(ubyte[])(this.length))); //TODO do not use the GC
+			this.base.receive(new Buffer(buffer.read!(ubyte[])(this.length))); //TODO do not use the GC
 			this.length = 0;
 			this.parseLength(buffer);
 		}
@@ -109,15 +182,15 @@ class LengthPrefixedStream(T, Endian endianness=Endian.bigEndian) : Modifier {
 
 }
 
-class CompressedStream(T, Endian endianness=Endian.bigEndian) : Modifier {
+class CompressedModifier(T, Endian endianness=Endian.bigEndian) : ComplexModifier {
 	
 	static if(!isVar!T) alias E = TypeTuple!(T, endianness);
 	else alias E = T;
 
 	private size_t thresold;
 
-	this(Stream stream, size_t thresold) {
-		super(stream);
+	this(Modifier base, size_t thresold) {
+		super(base);
 		this.thresold = thresold;
 	}
 
@@ -127,13 +200,13 @@ class CompressedStream(T, Endian endianness=Endian.bigEndian) : Modifier {
 		} else {
 			buffer.write!T(0, 0);
 		}
-		super.send(buffer);
+		this.base.send(buffer);
 	}
 
-	override void parseInput(Buffer buffer) {
+	override void receive(Buffer buffer) {
 		size_t length = buffer.read!E();
 		if(length == 0) {
-			super.parseInput(buffer);
+			this.base.receive(buffer);
 		} else {
 			//TODO uncompress
 		}
