@@ -65,7 +65,7 @@ class Stream {
 		this.conn.run(&this.handle);
 	}
 
-	private void handle(TCPEvent event) {
+	public void handle(TCPEvent event) {
 		switch(event) with(TCPEvent) {
 			case READ:
 				this.buffer.reset();
