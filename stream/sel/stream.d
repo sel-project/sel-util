@@ -28,10 +28,14 @@
  */
 module sel.stream;
 
+import std.conv : to;
+import std.socket : getAddress;
 import std.system : Endian;
 import std.typetuple : TypeTuple;
+import std.zlib : Compress, UnCompress;
 
-import libasync;
+import kiss.event : EventLoop;
+import kiss.net : TcpStream;
 
 import xbuffer.buffer : Buffer, BufferOverflowException;
 import xbuffer.varint : isVar;
@@ -41,175 +45,173 @@ import xbuffer.varint : isVar;
  */
 class Stream {
 
-	private AsyncTCPConnection conn;
-	private Buffer buffer;
+	TcpStream conn;
+	Buffer buffer;
 
 	public void delegate(Buffer) handler;
 
-	public Modifier modifier;
+	public void delegate() onConnect, onClose;
 
-	this(AsyncTCPConnection conn, void delegate(Buffer) handler) {
+	private Modifier[] modifiers;
+
+	this(TcpStream conn, void delegate(Buffer) handler) {
 		this.conn = conn;
+		this.conn.onDataReceived = &this.handle;
+		this.conn.onConnected((bool success){ onConnect(); });
+		this.conn.onClosed({ onClose(); });
 		this.buffer = new Buffer(1024);
 		this.handler = handler;
-		this.modifier = new BaseModifier(this);
+		this.onConnect = {};
+		this.onClose = {};
 	}
 
-	this(AsyncTCPConnection conn) {
+	this(TcpStream conn) {
 		this(conn, (Buffer buffer){});
 	}
 
 	this(EventLoop eventLoop, string ip, ushort port) {
-		this(new AsyncTCPConnection(eventLoop));
-		this.conn.host(ip, port);
-		this.conn.run(&this.handle);
+		this(new TcpStream(eventLoop));
+		this.conn.connect(getAddress(ip, port)[0]);
 	}
 
-	public void handle(TCPEvent event) {
-		switch(event) with(TCPEvent) {
-			case READ:
-				this.buffer.reset();
-				static ubyte[] buffer = new ubyte[4096];
-				while(true) {
-					auto len = this.conn.recv(buffer);
-					if(len > 0) this.buffer.write(buffer[0..len]);
-					if(len < buffer.length) break;
-				}
-				this.modifier.receive(this.buffer);
-				break;
-			case CLOSE:
-				//TODO call close handler
-				break;
-			default:
-				break;
-		}
+	public void handle(in ubyte[] data) {
+		this.buffer.data = data;
+		this.handleData();
 	}
 
 	public void handleData() {
-		this.modifier.receive(this.buffer);
+		bool more;
+		do {
+			more = false;
+			foreach(modifier ; this.modifiers) {
+				more |= modifier.decode(buffer);
+			}
+			if(buffer.data.length) this.handler(buffer);
+		} while(more);
+	}
+
+	public void send(ubyte[] data) {
+		this.buffer.data = data;
+		this.send(this.buffer);
 	}
 
 	public void send(Buffer buffer) {
-		this.modifier.send(buffer);
+		foreach_reverse(modifier ; this.modifiers) {
+			modifier.encode(buffer);
+		}
+		this.sendData(buffer);
+		buffer.reset();
 	}
 
 	public void sendData(Buffer buffer) {
-		this.conn.send(buffer.data!ubyte);
+		this.conn.write(buffer.data!ubyte);
 	}
 
-	public void modify(M:ComplexModifier, E...)(E args) {
-		this.modifier = new M(this.modifier, args);
+	public void modify(M:Modifier, E...)(E args) {
+		this.modifiers ~= new M(args);
 	}
-
-	//TODO close method
 	
 }
 
-class Modifier {
+abstract class Modifier {
 
-	abstract void send(Buffer buffer);
+	abstract void encode(Buffer buffer);
 
-	abstract void receive(Buffer buffer);
-
-}
-
-class BaseModifier : Modifier {
-
-	Stream stream;
-
-	this(Stream stream) {
-		this.stream = stream;
-	}
-
-	override void send(Buffer buffer) {
-		this.stream.sendData(buffer);
-	}
-
-	override void receive(Buffer buffer) {
-		this.stream.handler(buffer);
-	}
+	abstract bool decode(Buffer buffer);
 
 }
 
-class ComplexModifier : Modifier {
-
-	protected Modifier base;
-
-	protected this(Modifier base) {
-		this.base = base;
-	}
-
-}
-
-class LengthPrefixedModifier(T, Endian endianness=Endian.bigEndian) : ComplexModifier {
+class LengthPrefixedModifier(T, Endian endianness=Endian.bigEndian) : Modifier {
 
 	static if(!isVar!T) alias E = TypeTuple!(T, endianness);
 	else alias E = T;
 
 	private size_t length = 0;
+	private Buffer buffer;
 
-	this(Modifier base) {
-		super(base);
+	this() {
+		this.buffer = new Buffer(1024);
 	}
 
-	override void send(Buffer buffer) {
-		buffer.write!E(buffer.data.length, 0);
-		this.base.send(buffer);
+	override void encode(Buffer buffer) {
+		static if(isVar!T) buffer.write!E(buffer.data.length.to!(T.Base), 0);
+		else buffer.write!E(buffer.data.length.to!T, 0);
 	}
 
-	override void receive(Buffer buffer) {
+	override bool decode(Buffer buffer) {
+		buffer.data = this.buffer.data ~ buffer.data;
 		if(this.length == 0) {
-			this.parseLength(buffer);
+			return this.parseLength(buffer);
 		} else {
-			this.parseImpl(buffer);
+			return this.parseImpl(buffer);
 		}
 	}
 
-	private void parseLength(Buffer buffer) {
+	private bool parseLength(Buffer buffer) {
 		try {
 			this.length = buffer.read!E();
-			if(this.length != 0) this.parseImpl(buffer);
-		} catch(BufferOverflowException) {}
+			if(this.length != 0) return this.parseImpl(buffer);
+			else return false;
+		} catch(BufferOverflowException) {
+			// cannot read the length
+			this.buffer.data = buffer.data;
+			return false;
+		}
 	}
 
-	private void parseImpl(Buffer buffer) {
+	private bool parseImpl(Buffer buffer) {
 		if(buffer.canRead(this.length)) {
-			this.base.receive(new Buffer(buffer.read!(ubyte[])(this.length))); //TODO do not use the GC
+			this.buffer.data = buffer.readData(this.length);
 			this.length = 0;
-			this.parseLength(buffer);
+			void[] rest = buffer.data;
+			buffer.data = this.buffer.data;
+			this.buffer.data = rest;
+			return true;
+		} else {
+			// not enough data to read
+			this.buffer.data = buffer.data;
+			return false;
 		}
 	}
 
 }
 
-class CompressedModifier(T, Endian endianness=Endian.bigEndian) : ComplexModifier {
+class CompressedModifier(T, Endian endianness=Endian.bigEndian) : Modifier {
 	
 	static if(!isVar!T) alias E = TypeTuple!(T, endianness);
 	else alias E = T;
 
 	private size_t thresold;
 
-	this(Modifier base, size_t thresold) {
-		super(base);
+	this(size_t thresold) {
 		this.thresold = thresold;
 	}
 
-	override void send(Buffer buffer) {
+	override void encode(Buffer buffer) {
 		if(buffer.data.length >= this.thresold) {
-			//TODO compress
+			immutable length = buffer.data.length;
+			Compress c = new Compress();
+			auto data = c.compress(buffer.data);
+			data ~= c.flush();
+			static if(isVar!T) buffer.write!E(length.to!(T.Base));
+			else buffer.write!E(length.to!T);
+			buffer.data = data;
 		} else {
 			buffer.write!T(0, 0);
 		}
-		this.base.send(buffer);
 	}
 
-	override void receive(Buffer buffer) {
-		size_t length = buffer.read!E();
-		if(length == 0) {
-			this.base.receive(buffer);
-		} else {
-			//TODO uncompress
-		}
+	override bool decode(Buffer buffer) {
+		try {
+			size_t length = buffer.read!E();
+			if(length != 0) {
+				UnCompress uc = new UnCompress(length.to!uint);
+				auto data = uc.uncompress(buffer.data);
+				data ~= uc.flush();
+				buffer.data = data;
+			}
+		} catch(BufferOverflowException) {}
+		return false;
 	}
 
 }
