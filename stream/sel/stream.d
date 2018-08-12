@@ -166,7 +166,7 @@ class LengthPrefixedModifier(T, Endian endianness=Endian.bigEndian) : Modifier {
 			void[] rest = buffer.data;
 			buffer.data = this.buffer.data;
 			this.buffer.data = rest;
-			return true;
+			return this.buffer.data.length > 0;
 		} else {
 			// not enough data to read
 			this.buffer.data = buffer.data;
