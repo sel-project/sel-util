@@ -1,0 +1,7 @@
+name "stream"
+description "Asynchronous stream with modifiers"
+targetType "library"
+importPaths "."
+sourcePaths "."
+dependency "kiss" version="~>0.4"
+dependency "packet-maker" version="~>0.6"
