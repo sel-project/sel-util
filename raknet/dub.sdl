@@ -1,5 +1,5 @@
-name "stream"
-description "Asynchronous stream with modifiers"
+name "raknet"
+description "RakNet packet and handlers"
 targetType "library"
 importPaths "."
 sourcePaths "."
