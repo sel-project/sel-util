@@ -20,6 +20,12 @@
  * SOFTWARE.
  *
  */
+/**
+ * Copyright: Copyright (c) 2018 sel-project
+ * License: MIT
+ * Authors: Kripth
+ * Source: $(HTTP github.com/sel-project/sel-util/raknet/sel/raknet/package.d, sel/raknet/package.d)
+ */
 module sel.raknet;
 
 public import sel.raknet.handler;

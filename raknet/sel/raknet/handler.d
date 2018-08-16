@@ -20,6 +20,12 @@
  * SOFTWARE.
  *
  */
+/**
+ * Copyright: Copyright (c) 2018 sel-project
+ * License: MIT
+ * Authors: Kripth
+ * Source: $(HTTP github.com/sel-project/sel-util/raknet/sel/raknet/handler.d, sel/raknet/handler.d)
+ */
 module sel.raknet.handler;
 
 import std.algorithm : min;
