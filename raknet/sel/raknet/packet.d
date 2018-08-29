@@ -20,21 +20,12 @@
  * SOFTWARE.
  *
  */
-/**
- * Copyright: Copyright (c) 2018 sel-project
- * License: MIT
- * Authors: Kripth
- * Source: $(HTTP github.com/sel-project/sel-util/raknet/sel/raknet/packet.d, sel/raknet/packet.d)
- */
 module sel.raknet.packet;
 
 import std.socket : SocketAddress = Address, InternetAddress, Internet6Address;
 import std.system : Endian;
 
-import packetmaker.maker : Make, Condition, Bytes;
-import packetmaker.packet : PacketImpl;
-
-import xbuffer : Buffer;
+import xpacket;
 
 alias RaknetPacket = PacketImpl!(Endian.bigEndian, ubyte, ushort);
 
@@ -63,12 +54,12 @@ struct Triad {
 
 	}
 
-	void encodeBody(Buffer buffer) {
+	void serialize(Buffer buffer) {
 		version(LittleEndian) buffer.writeData(this.array[0..3]);
 		else buffer.writeData(this.array[3], this.array[2], this.array[1]);
 	}
 
-	void decodeBody(Buffer buffer) {
+	void deserialize(Buffer buffer) {
 		version(LittleEndian) this.array[0..3] = buffer.readData(3);
 		else {
 			this.array[3] = buffer.read!ubyte();
@@ -121,7 +112,7 @@ struct Encapsulation {
 	@Condition("(info&0x7F) >= 96") Triad orderIndex;
 	@Condition("(info&0x7F) >= 96") Triad orderChannel;
 	@Condition("(info&0x7F) != 0") Split split;
-	@Bytes ubyte[] bytes;
+	@NoLength ubyte[] bytes;
 
 }
 
@@ -216,7 +207,7 @@ class OpenConnectionRequest1 : RaknetPacket {
 
 	Magic magic;
 	ubyte protocol = 8;
-	@Bytes ubyte[] mtu;
+	@NoLength ubyte[] mtu;
 
 	this() pure nothrow @safe @nogc {}
 

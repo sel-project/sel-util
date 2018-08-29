@@ -20,12 +20,6 @@
  * SOFTWARE.
  *
  */
-/**
- * Copyright: Copyright (c) 2018 sel-project
- * License: MIT
- * Authors: Kripth
- * Source: $(HTTP github.com/sel-project/sel-util/raknet/sel/raknet/handler.d, sel/raknet/handler.d)
- */
 module sel.raknet.handler;
 
 import std.algorithm : min;
@@ -107,8 +101,8 @@ class RaknetHandler {
 			switch(buffer[0]) {
 				case Ack.ID:
 					Ack packet = new Ack();
-					packet.autoDecode(buffer);
-					writeln("Ack: ", packet.packets);
+					packet.decode(buffer);
+					//writeln("Ack: ", packet.packets);
 					foreach(ack ; packet.packets) {
 						if(ack.unique) {
 							this.sent.remove(ack.first);
@@ -119,8 +113,8 @@ class RaknetHandler {
 					break;
 				case Nack.ID:
 					Nack packet = new Nack();
-					packet.autoDecode(buffer);
-					writeln("Nack: ", packet.packets);
+					packet.decode(buffer);
+					//writeln("Nack: ", packet.packets);
 					void send(uint id) {
 						auto sent = id in this.sent;
 						if(sent) this.socket.sendTo(*sent, this.address);
