@@ -11,3 +11,5 @@ subPackage "protocols"
 subPackage "raknet"
 subPackage "stream"
 subPackage "terminal"
+
+dflags "-op"
