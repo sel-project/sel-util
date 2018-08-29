@@ -20,6 +20,12 @@
  * SOFTWARE.
  *
  */
+/**
+ * Copyright: Copyright (c) 2018 sel-project
+ * License: MIT
+ * Authors: Kripth
+ * Source: $(HTTP github.com/sel-project/sel-util/raknet/sel/raknet/packet.d, sel/raknet/packet.d)
+ */
 module sel.raknet.packet;
 
 import std.socket : SocketAddress = Address, InternetAddress, Internet6Address;
