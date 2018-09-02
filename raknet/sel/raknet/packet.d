@@ -212,7 +212,7 @@ class OpenConnectionRequest1 : RaknetPacket {
 	enum ubyte ID = 5;
 
 	Magic magic;
-	ubyte protocol = 8;
+	ubyte protocol = 9;
 	@NoLength ubyte[] mtu;
 
 	this() pure nothrow @safe @nogc {}
