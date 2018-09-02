@@ -176,7 +176,7 @@ class RaknetHandler {
 			split = id in this.splits;
 		}
 		if(count == (*split).length && order < count) {
-			(*split)[order] = buffer;
+			(*split)[order] = buffer.dup;
 			if(++this.splitsCount[id] == count) {
 				ubyte[] ret;
 				foreach(b ; *split) {
