@@ -135,7 +135,7 @@ class LengthPrefixedModifier(T, Endian endianness=Endian.bigEndian) : Modifier {
 
 	override void encode(Buffer buffer) {
 		static if(isVar!T) buffer.write!E(buffer.data.length.to!(T.Base), 0);
-		else buffer.write!E(buffer.data.length.to!T, 0);
+		else buffer.write!(endianness, T)(buffer.data.length.to!T, 0);
 	}
 
 	override bool decode(Buffer buffer) {
@@ -149,7 +149,8 @@ class LengthPrefixedModifier(T, Endian endianness=Endian.bigEndian) : Modifier {
 
 	private bool parseLength(Buffer buffer) {
 		try {
-			this.length = buffer.read!E();
+			static if(isVar!T) this.length = buffer.read!E();
+			else this.length = buffer.read!(endianness, T)();
 			if(this.length != 0) return this.parseImpl(buffer);
 			else return false;
 		} catch(BufferOverflowException) {
