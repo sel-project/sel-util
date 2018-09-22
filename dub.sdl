@@ -13,3 +13,4 @@ subPackage "stream"
 subPackage "terminal"
 
 dflags "-op"
+dflags "-op"
