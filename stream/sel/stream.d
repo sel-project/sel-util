@@ -194,9 +194,9 @@ class CompressedModifier(T, Endian endianness=Endian.bigEndian) : Modifier {
 			Compress c = new Compress();
 			auto data = c.compress(buffer.data);
 			data ~= c.flush();
-			static if(isVar!T) buffer.write!E(length.to!(T.Base));
-			else buffer.write!E(length.to!T);
 			buffer.data = data;
+			static if(isVar!T) buffer.write!E(length.to!(T.Base), 0);
+			else buffer.write!E(length.to!T, 0);
 		} else {
 			buffer.write!T(0, 0);
 		}
