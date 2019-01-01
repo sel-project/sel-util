@@ -2,7 +2,7 @@ name "sel-util"
 description "Utilities for Minecraft libraries and applications"
 authors "sel-project"
 license "MIT"
-copyright "Copyright (c) 2018 sel-project"
+copyright "Copyright (c) 2018-2019 sel-project"
 targetType "none"
 
 subPackage "chat"
